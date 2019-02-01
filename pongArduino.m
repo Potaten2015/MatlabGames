@@ -1,3 +1,5 @@
+%% Matlab Gaming: Pong
+
 clear all
 close all
 clc
