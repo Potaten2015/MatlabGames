@@ -13,24 +13,23 @@ dim = [(screensize(3)-screensize(4))/2 0 screensize(4)/3 screensize(4)/3];
 
 mapSize = 40;
 
-xPos = gpuArray([0 1 2]);
-yPos = gpuArray([0 1 0]);
+xPos = [0 1 2];
+yPos = [0 1 0];
 % Contains the x values for the first row of enemies
 % # enemies x 3 array, where each of the three values in a row
 % represents the horizontal position of each of the points
 % on the triangular enemies
-enemyXStart = ...
-    gpuArray([-5 -4 -3;
+enemyXStart = [-5 -4 -3;
     -1 0 1;
-    3 4 5]);
+    3 4 5];
 % The height at which enemies will ALWAYS start
 enemyYStart = ...
-    gpuArray([mapSize/2 - 1, mapSize/2 - 2, mapSize/2 - 1]);
+    [mapSize/2 - 1, mapSize/2 - 2, mapSize/2 - 1];
 % Start the first row at the correct place
 enemyYValues = enemyYStart;
 % Set the horizontal movement speed of the enemies
 % Each entry represents the speed of a single row of enemies
-enemyRowMove = gpuArray([rand]);
+enemyRowMove = [rand];
 % Contains the x values for each row of enemies
 % One key represents a row of enemies, and the value is:
 % # enemies x 3 array, where each of the three values in a row
@@ -40,8 +39,8 @@ rowValues = containers.Map({1}, {enemyXStart});
 % Keeps track of the number of rows
 totalRows = 1;
 % TODO: Keeps track of friendly bullet positions
-bulletsX = gpuArray([]);
-bulletsY = gpuArray([]);
+bulletsX = [];
+bulletsY = [];
 % Initial movement directions of the player
 xMove = .1;
 yMove = 0;
@@ -102,9 +101,9 @@ while xPos(1) > -mapSize/2 & ...
                 enemyYValues = enemyYValues - .2;
             if enemyYValues(end) - 1 < mapSize / 2 - 3
                 totalRows = totalRows + 1;
-                enemyYValues = gpuArray([enemyYValues; enemyYStart]);
+                enemyYValues = [enemyYValues; enemyYStart];
                 rowValues(totalRows) = enemyXStart;
-                enemyRowMove = gpuArray([enemyRowMove rand]);
+                enemyRowMove = [enemyRowMove rand];
             end
         end
         rowValues(i) = rowValues(i) + enemyRowMove(i);
