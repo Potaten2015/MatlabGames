@@ -1,5 +1,5 @@
 %% Video 4
-%% Matlab Gaming: Galage
+%% Matlab Gaming: Galaga
 
 clear all
 close all
@@ -26,7 +26,7 @@ enemyXStart = [-5 -4 -3;
 enemyYStart = ...
     [mapSize/2 - 1, mapSize/2 - 2, mapSize/2 - 1];
 % Start the first row at the correct place
-enemyYValues = enemyYStart;
+enemyYValues = containers.Map({1},{enemyYStart});
 % Set the horizontal movement speed of the enemies
 % Each entry represents the speed of a single row of enemies
 enemyRowMove = [rand];
@@ -55,24 +55,26 @@ colors = ['r' 'y' 'k' 'o'];
 
 set(gcf,'KeyPressFcn',@stroke)
 
-% Try to implement the parfor loop for collision detection. Not sure that
-% this is even possible. Collision steps:
-% 1. Get row values from object
-% 2. Check if leftmost or righmost points have overlapped boundaries
-%   - Maybe there is a way to vectorize this check by moving the boundaries
-%       into an array and checking the entire array for being greater than
-%       the right boundary or less than the left boundary. Maybe ignore
-%       step 3 if this is the case and move down on any boundary impact.
-%       ** Move all points and check if array > right || array < left 
-% 3. If yes, check if the overlapping dot was in the bottom-most row
-%   - Need to update bottom-most row in the future when a row is gone
 
+% LAST UPDATE
+% Converted x and y enemy values to maps.
+% Added bullets
+% Added bullet impact (broken)
+% NEXT UPDATE
+% Error check.
+% Dial in player speed, bullet speed, enemy speed.
+% Fix the impact function
 
 while xPos(1) > -mapSize/2 & ... 
         xPos(end) < mapSize/2
     
     dir = get(gcf,'CurrentKey');
 
+    bulletsY = bulletsY + 1;
+    exitBullets = bulletsY > mapSize / 2;
+    bulletsY(exitBullets) = [];
+    bulletsX(exitBullets) = [];
+    
     switch dir
         case 'rightarrow'
             xMove = .1;
@@ -80,44 +82,87 @@ while xPos(1) > -mapSize/2 & ...
         case 'leftarrow'
             xMove = -.1;
             yMove = 0;
+        case 'space'
+            if isempty(bulletsY)
+                bulletsX(end + 1) = xPos(2);
+                bulletsY(end + 1) = yPos(2) + 1;
+            else
+                if bulletsY(end) > 2
+                    bulletsX(end + 1) = xPos(2);
+                    bulletsY(end + 1) = yPos(2) + 1;
+                end
+            end   
     end
 
-    for j = 1:length(xPos)
-        xPos(j) = xPos(j) + xMove;
-    end
-    
-    if sum((xPos(end) == xPos(1:end-1)).*(yPos(end) == yPos(1:end-1))) > 0
-        xPos(end) = mapSize;
-    end
+    xPos = xPos + xMove;
     
     rows = rowValues.keys;
     for i = 1:length(rows)
         row = rowValues(rows{i});
-        leftValue = row(1:1, 1);
-        rightValue = row(end:end, end);
-        if rightValue + enemyRowMove(i) > mapSize / 2 |...
-                leftValue + enemyRowMove(i) < - mapSize / 2
-            enemyRowMove(i) = -(enemyRowMove(i) + .1);
-                enemyYValues = enemyYValues - .2;
-            if enemyYValues(end) - 1 < mapSize / 2 - 3
-                totalRows = totalRows + 1;
-                enemyYValues = [enemyYValues; enemyYStart];
-                rowValues(totalRows) = enemyXStart;
-                enemyRowMove = [enemyRowMove rand];
+        erasedEnemies = [];
+        erasedBullets = [];
+        for j = 1:length(row(:, 1))
+            for k = 1:length(bulletsY)
+                yValues = enemyYValues(rows{i});
+                if yValues(1) > bulletsY(k) & yValues(2) < bulletsY(k)
+                    if enemyDestroyed(yValues(1), row(j,1), row(j,3), yValues(2), bulletsX(k), bulletsY(k))
+                        erasedBullets(end + 1) = k;
+                        erasedEnemies(end + 1) = j;
+                    end
+                end
             end
         end
-        rowValues(i) = rowValues(i) + enemyRowMove(i);
+        bulletsX(erasedBullets) = [];
+        bulletsY(erasedBullets) = [];
+        row(erasedEnemies, :) = [];
+        if isempty(row)
+            remove(enemyYValues,i);
+            remove(rowValues, i);
+        else
+            rowValues(i) = row;
+            leftValue = row(1:1, 1);
+            rightValue = row(end:end, end);
+            if rightValue + enemyRowMove(i) > mapSize / 2 |...
+                    leftValue + enemyRowMove(i) < - mapSize / 2
+                enemyRowMove(i) = -(enemyRowMove(i) * 1.1);
+                innerRows = rowValues.keys;
+                for l = 1:length(innerRows)
+                    enemyYValues(innerRows{i}) = enemyYValues(innerRows{i}) - .2;
+                end
+            end
+            rowValues(i) = rowValues(i) + enemyRowMove(i);
+        end
+    end
+    
+    rows = rowValues.keys;
+    if ~isempty(enemyYValues)
+        if enemyYValues(rows{length(rows)}) < mapSize / 2 - 3
+            totalRows = rows{length(rows)} + 1;
+            enemyYValues(totalRows) = enemyYStart;
+            rowValues(totalRows) = enemyXStart;
+            enemyRowMove = [enemyRowMove rand];
+        end
+    else
+        totalRows = 1;
+        enemyYValues(totalRows) = enemyYStart;
+        rowValues(totalRows) = enemyXStart;
+        enemyRowMove = [rand];
     end
     
     clf
-    
-    for i = 1:length(rows)
-        row = rowValues(rows{i});
-        for j = 1:size(row, 1)
-            scatter(row(j:j,:), enemyYValues(i:i,:), 'filled', colors(mod(i, length(colors)) + 1))
-            hold on
+    innerRows = rowValues.keys;
+    if ~isempty(rowValues.keys)
+        for i = 1:length(innerRows)
+            row = rowValues(innerRows{i});
+            for j = 1:size(row, 1)
+                scatter(row(j:j,:), enemyYValues(innerRows{i}), 'filled', colors(mod(i, length(colors)) + 1))
+                hold on
+            end
         end
     end
+    
+    scatter(bulletsX, bulletsY)
+    hold on
     
     xlim([-mapSize/2 mapSize/2])
     ylim([-1 mapSize/2])

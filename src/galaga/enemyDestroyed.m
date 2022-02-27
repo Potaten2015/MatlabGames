@@ -1,0 +1,33 @@
+function impact = enemyDestroyed(triangleFlatY, ...
+    triangleFlatX1, ...
+    triangleFlatX2, ...
+    trianglePointY, ...
+    pointX, ...
+    pointY)
+%Checks the impact of a point and a player or a point and an enemy
+%   Detailed explanation goes here
+
+% x1: triangleFlatX1
+% x2: triangleFlatX2
+% y1: trianglePointY
+% y2: triangleFlatY
+% y: pointY
+width = @(x1, x2, y1, y2, y) (x2 - x1) * (y - y1) / (y2 - y1);
+
+impact = 0;
+width_new = width(...
+    triangleFlatX1, ...
+    triangleFlatX2, ...
+    trianglePointY, ...
+    triangleFlatY, ...
+    pointY);
+x1_new = triangleFlatX1 + (((triangleFlatX2 - triangleFlatX1) - width_new) / 2);
+x2_new = x1_new + width_new;
+
+
+if pointX < x2_new & pointX > x1_new
+    impact = 1;
+end
+
+end
+
